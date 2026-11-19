@@ -532,6 +532,11 @@ function updateExcelSummaryTable() {
     tfoot.innerHTML = '';
     return;
   }
+function printReceiptPDF() {
+  const modal = document.getElementById('receiptModal');
+  if (!modal || modal.style.display === 'none') return;
+  window.print();
+}
 
   const grouped = {};
   inventory.forEach(item => {
@@ -618,3 +623,4 @@ function exportTableToCSV() {
   link.click();
   document.body.removeChild(link);
 }
+
