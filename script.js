@@ -497,7 +497,7 @@ function showReceipt(receiptNo) {
     itemsHtml += `
       <div style="margin-bottom: 8px;">
         <b>[${i.code}]</b> ${i.name} (${i.size})<br>
-        <span style="font-size:0.75rem; color:#555;">Distribuidor: Angel & Mar Style</span><br>
+        <span style="font-size:0.75rem; color:#555;">Recibo: Angel & Mar Style</span><br>
         <span>Precio: $${(parseFloat(i.price) || 0).toLocaleString()}</span>
       </div>
     `;
@@ -681,8 +681,8 @@ function printReceiptPDF() {
   clone.querySelectorAll('.close-x, .btn-action-receipt').forEach(el => el.remove());
 
   clone.querySelectorAll('#receiptBodyData span').forEach(spanEl => {
-    if (spanEl.textContent.includes('Distribuidor:')) {
-      spanEl.textContent = 'Distribuidor: Angel & Mar Style';
+    if (spanEl.textContent.includes('Recibo:')) {
+      spanEl.textContent = 'Recibo: Angel & Mar Style';
     }
   });
 
