@@ -680,7 +680,7 @@ function printReceiptPDF() {
   const clone = receiptArea.cloneNode(true);
   clone.querySelectorAll('.close-x, .btn-action-receipt').forEach(el => el.remove());
 
-  const printWin = window.open('', '_blank', 'width=720,height=850');
+  const printWin = window.open('', '_blank', 'width=500,height=650');
   if (!printWin) {
     window.print();
     return;
@@ -695,7 +695,7 @@ function printReceiptPDF() {
       <title>Recibo Angel & Mar Style</title>
       <style>
         @page {
-          margin: 10mm;
+          margin: 4mm;
         }
         * {
           box-sizing: border-box;
@@ -707,52 +707,52 @@ function printReceiptPDF() {
           background: #FFFFFF;
           color: #000000;
           font-family: 'Courier New', Courier, monospace;
-          font-size: 16px;
-          line-height: 1.45;
+          font-size: 11px;
+          line-height: 1.25;
         }
         .receipt-content {
           width: 100%;
-          max-width: 460px;
+          max-width: 270px;
           margin: 0 auto;
-          padding: 16px;
+          padding: 8px;
           background: #FFFFFF;
         }
         .receipt-header {
           text-align: center;
-          border-bottom: 1.5px dashed #000;
-          padding-bottom: 10px;
-          margin-bottom: 14px;
+          border-bottom: 1px dashed #000;
+          padding-bottom: 6px;
+          margin-bottom: 8px;
         }
         .receipt-header h3 {
-          margin: 0 0 4px 0;
-          font-size: 22px;
-          letter-spacing: 1px;
+          margin: 0 0 2px 0;
+          font-size: 14px;
+          letter-spacing: 0.5px;
         }
         .receipt-header p {
-          margin: 2px 0;
-          font-size: 14px !important;
+          margin: 1px 0;
+          font-size: 10px !important;
         }
         #receiptBodyData {
-          font-size: 16px !important;
-          line-height: 1.45 !important;
+          font-size: 11px !important;
+          line-height: 1.25 !important;
         }
         #receiptBodyData span {
-          font-size: 14px !important;
+          font-size: 10px !important;
           color: #222 !important;
         }
         #receiptBodyData div[style*="TOTAL PAGADO"] {
-          font-size: 19px !important;
-          margin-top: 8px;
+          font-size: 13px !important;
+          margin-top: 5px;
         }
         .receipt-footer {
           text-align: center;
-          border-top: 1.5px dashed #000;
-          padding-top: 10px;
-          margin-top: 14px;
-          font-size: 13px !important;
+          border-top: 1px dashed #000;
+          padding-top: 6px;
+          margin-top: 8px;
+          font-size: 9.5px !important;
         }
         .receipt-footer p {
-          margin: 2px 0;
+          margin: 1px 0;
         }
       </style>
     </head>
