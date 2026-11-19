@@ -1,7 +1,8 @@
 function switchTab(evt, tabId) {
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(tabId).classList.add('active');
+  const target = document.getElementById(tabId);
+  if (target) target.classList.add('active');
   if (evt && evt.currentTarget) {
     evt.currentTarget.classList.add('active');
   }
@@ -81,7 +82,7 @@ const STORAGE_KEYS = {
 
 let inventory = JSON.parse(localStorage.getItem(STORAGE_KEYS.inventory)) || defaultInventory;
 let soldItems = JSON.parse(localStorage.getItem(STORAGE_KEYS.sold)) || [];
-let receiptCounter = parseInt(localStorage.getItem(STORAGE_KEYS.receiptCounter)) || 17802;
+let receiptCounter = parseInt(localStorage.getItem(STORAGE_KEYS.receiptCounter), 10) || 17802;
 let activeReceiptNo = null;
 
 function saveAll() {
@@ -99,22 +100,63 @@ function recalculateStockAndSales() {
     return acc + (batchRev - batchCost);
   }, 0);
 
-  document.getElementById('totalInvested').innerText = `$${currentStockInvestment.toLocaleString()}`;
-  document.getElementById('totalSalesRevenue').innerText = `$${historicalRevenue.toLocaleString()}`;
-  document.getElementById('totalProfit').innerText = `${historicalProfit >= 0 ? '+' : ''}$${historicalProfit.toLocaleString()}`;
+  const investedEl = document.getElementById('totalInvested');
+  const revenueEl = document.getElementById('totalSalesRevenue');
+  const profitEl = document.getElementById('totalProfit');
+
+  if (investedEl) investedEl.innerText = `$${currentStockInvestment.toLocaleString()}`;
+  if (revenueEl) revenueEl.innerText = `$${historicalRevenue.toLocaleString()}`;
+  if (profitEl) profitEl.innerText = `${historicalProfit >= 0 ? '+' : ''}$${historicalProfit.toLocaleString()}`;
 }
 
-window.onload = function() {
+function initApp() {
   updateDistributorSelects();
   updateDistributorCards();
   updateInventoryTable();
   updateSoldTable();
   updateExcelSummaryTable();
   recalculateStockAndSales();
-};
+
+  const productForm = document.getElementById('productForm');
+  if (productForm) {
+    productForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const dist = document.getElementById('productDist').value;
+      const baseCode = document.getElementById('productCode').value;
+      const name = document.getElementById('productName').value;
+      const image = document.getElementById('productImage').value;
+      const size = document.getElementById('productSize').value;
+      const cost = parseFloat(document.getElementById('productCost').value) || 0;
+      const price = parseFloat(document.getElementById('productPrice').value) || 0;
+      const qty = parseInt(document.getElementById('productQty').value, 10) || 1;
+
+      for (let i = 0; i < qty; i++) {
+        const uniqueCode = qty > 1 ? `${baseCode}-${i + 1}` : baseCode;
+        inventory.push({ id: Date.now() + i, code: uniqueCode, image, dist, name, size, cost, price });
+      }
+
+      saveAll();
+      recalculateStockAndSales();
+      updateInventoryTable();
+      updateDistributorCards();
+      updateExcelSummaryTable();
+      this.reset();
+      document.getElementById('productQty').value = "1";
+      alert('¡Prenda(s) añadida(s) con éxito al inventario!');
+      switchTab({ currentTarget: document.querySelectorAll('.tab-btn')[2] }, 'tab-inventario');
+    });
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
 
 function updateDistributorSelects() {
   const select = document.getElementById('productDist');
+  if (!select) return;
   select.innerHTML = '<option value="">-- Selecciona un aliado --</option>';
   distributors.forEach(d => {
     select.innerHTML += `<option value="${d.name}">${d.name}</option>`;
@@ -134,12 +176,11 @@ function generateUniqueCode() {
   else if (distSelect === "Katsa Ialin") prefix = "KAT";
   else if (distSelect === "Android Jeans") prefix = "AJ";
 
-  let randomNum;
-  let newCode;
+  let newCode = "";
   let exists = true;
 
   while (exists) {
-    randomNum = Math.floor(100 + Math.random() * 900);
+    const randomNum = Math.floor(100 + Math.random() * 900);
     newCode = `${prefix}-${randomNum}`;
     exists = inventory.some(item => item.code === newCode);
   }
@@ -155,13 +196,15 @@ function calculateDefaultPrice() {
 
 function updateDistributorCards() {
   const container = document.getElementById('distributorCardsContainer');
+  if (!container) return;
+
   container.innerHTML = '';
   distributors.forEach(d => {
     const items = inventory.filter(item => item.dist === d.name);
     let stockHtml = `<div class="stock-summary"><strong>Códigos en Stock (${items.length}):</strong>`;
     if (items.length > 0) {
       items.forEach(i => {
-        stockHtml += `<div>• <b>[${i.code}]</b> ${i.name} ($${i.price.toLocaleString()})</div>`;
+        stockHtml += `<div>• <b>[${i.code}]</b> ${i.name} ($${(parseFloat(i.price) || 0).toLocaleString()})</div>`;
       });
     } else {
       stockHtml += `<div style="color:#777;">Sin stock disponible</div>`;
@@ -179,33 +222,6 @@ function updateDistributorCards() {
     `;
   });
 }
-
-document.getElementById('productForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  const dist = document.getElementById('productDist').value;
-  const baseCode = document.getElementById('productCode').value;
-  const name = document.getElementById('productName').value;
-  const image = document.getElementById('productImage').value;
-  const size = document.getElementById('productSize').value;
-  const cost = parseFloat(document.getElementById('productCost').value);
-  const price = parseFloat(document.getElementById('productPrice').value);
-  const qty = parseInt(document.getElementById('productQty').value) || 1;
-
-  for (let i = 0; i < qty; i++) {
-    let uniqueCode = qty > 1 ? `${baseCode}-${i + 1}` : baseCode;
-    inventory.push({ id: Date.now() + i, code: uniqueCode, image, dist, name, size, cost, price });
-  }
-
-  saveAll();
-  recalculateStockAndSales();
-  updateInventoryTable();
-  updateDistributorCards();
-  updateExcelSummaryTable();
-  this.reset();
-  document.getElementById('productQty').value = "1";
-  alert('¡Prenda(s) añadida(s) con éxito al inventario!');
-  switchTab({ currentTarget: document.querySelectorAll('.tab-btn')[2] }, 'tab-inventario');
-});
 
 function editInventoryItem(id, field, rawValue) {
   const item = inventory.find(i => i.id === id);
@@ -239,47 +255,46 @@ function deleteInventoryItem(id) {
 
 function sellItem(id) {
   const itemIndex = inventory.findIndex(i => i.id === id);
-  if (itemIndex !== -1) {
-    const soldObj = inventory.splice(itemIndex, 1)[0];
-    soldObj.receiptNo = receiptCounter++;
-    soldObj.date = new Date().toLocaleDateString();
+  if (itemIndex === -1) return;
 
-    const batchSale = {
-      receiptNo: soldObj.receiptNo,
-      date: soldObj.date,
-      items: [soldObj],
-      totalRevenue: soldObj.price,
-      totalCost: soldObj.cost
-    };
+  const soldObj = inventory.splice(itemIndex, 1)[0];
+  soldObj.receiptNo = receiptCounter++;
+  soldObj.date = new Date().toLocaleDateString();
 
-    soldItems.push(batchSale);
+  const batchSale = {
+    receiptNo: soldObj.receiptNo,
+    date: soldObj.date,
+    items: [soldObj],
+    totalRevenue: soldObj.price,
+    totalCost: soldObj.cost
+  };
 
-    saveAll();
-    recalculateStockAndSales();
-    updateInventoryTable();
-    updateSoldTable();
-    updateDistributorCards();
-    updateExcelSummaryTable();
-    checkSelection();
+  soldItems.push(batchSale);
 
-    showReceipt(batchSale.receiptNo);
-  }
+  saveAll();
+  recalculateStockAndSales();
+  updateInventoryTable();
+  updateSoldTable();
+  updateDistributorCards();
+  updateExcelSummaryTable();
+  checkSelection();
+
+  showReceipt(batchSale.receiptNo);
 }
 
 function checkSelection() {
   const checkboxes = document.querySelectorAll('.item-select:checked');
   const bar = document.getElementById('cartFloatBar');
-  document.getElementById('selectedCount').innerText = `${checkboxes.length} ítems seleccionados`;
-  if (checkboxes.length > 0) {
-    bar.style.display = 'flex';
-  } else {
-    bar.style.display = 'none';
-  }
+  const countEl = document.getElementById('selectedCount');
+  if (countEl) countEl.innerText = `${checkboxes.length} ítems seleccionados`;
+  if (bar) bar.style.display = checkboxes.length > 0 ? 'flex' : 'none';
 }
 
 function toggleSelectAll(source) {
   const checkboxes = document.querySelectorAll('.item-select');
-  checkboxes.forEach(cb => cb.checked = source.checked);
+  checkboxes.forEach(cb => {
+    cb.checked = source.checked;
+  });
   checkSelection();
 }
 
@@ -287,8 +302,8 @@ function generateMultiReceipt() {
   const checkboxes = document.querySelectorAll('.item-select:checked');
   if (checkboxes.length === 0) return;
 
-  let selectedIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
-  let batchItems = [];
+  const selectedIds = Array.from(checkboxes).map(cb => parseInt(cb.value, 10));
+  const batchItems = [];
   let totalRev = 0;
   let totalCst = 0;
 
@@ -297,10 +312,12 @@ function generateMultiReceipt() {
     if (idx !== -1) {
       const item = inventory.splice(idx, 1)[0];
       batchItems.push(item);
-      totalRev += item.price;
-      totalCst += item.cost;
+      totalRev += parseFloat(item.price) || 0;
+      totalCst += parseFloat(item.cost) || 0;
     }
   });
+
+  if (batchItems.length === 0) return;
 
   const currentReceiptNo = receiptCounter++;
   const currentDate = new Date().toLocaleDateString();
@@ -333,7 +350,7 @@ function voidReceipt(receiptNo) {
   const batch = soldItems[batchIdx];
   const codesText = batch.items.map(i => `[${i.code}] ${i.name}`).join(', ');
   const confirmed = confirm(
-    `¿Seguro que deseas ANULAR el Recibo #${receiptNo} por $${batch.totalRevenue.toLocaleString()}?\n` +
+    `¿Seguro que deseas ANULAR el Recibo #${receiptNo} por $${(parseFloat(batch.totalRevenue) || 0).toLocaleString()}?\n` +
     `Prendas que volverán al inventario: ${codesText}`
   );
   if (!confirmed) return;
@@ -384,7 +401,7 @@ function showReceipt(receiptNo) {
       <div style="margin-bottom: 8px;">
         <b>[${i.code}]</b> ${i.name} (${i.size})<br>
         <span style="font-size:0.75rem; color:#555;">Distribuidor: ${i.dist} | Angel & Mar Style</span><br>
-        <span>Precio: $${i.price.toLocaleString()}</span>
+        <span>Precio: $${(parseFloat(i.price) || 0).toLocaleString()}</span>
       </div>
     `;
   });
@@ -393,7 +410,7 @@ function showReceipt(receiptNo) {
   itemsHtml += `
     <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 0.95rem;">
       <span>TOTAL PAGADO:</span>
-      <span>$${batch.totalRevenue.toLocaleString()}</span>
+      <span>$${(parseFloat(batch.totalRevenue) || 0).toLocaleString()}</span>
     </div>
     <button type="button" class="btn-action-receipt" style="background: #C0392B; margin-top: 12px;" onclick="voidReceipt(${batch.receiptNo})">
       🚫 Anular este Recibo
@@ -425,6 +442,8 @@ function filterInventory() {
 
 function updateInventoryTable() {
   const tbody = document.getElementById('inventoryBody');
+  if (!tbody) return;
+
   if (!inventory.length) {
     tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#777;">Sin stock disponible.</td></tr>`;
     return;
@@ -460,18 +479,20 @@ function updateInventoryTable() {
 
 function updateSoldTable() {
   const tbody = document.getElementById('soldBody');
+  if (!tbody) return;
+
   if (!soldItems.length) {
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#777;">Aún no hay ventas registradas.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = soldItems.map(batch => {
-    let codeList = batch.items.map(i => `[${i.code}] ${i.name}`).join(', ');
+    const codeList = batch.items.map(i => `[${i.code}] ${i.name}`).join(', ');
     return `
       <tr>
         <td>#${batch.receiptNo}</td>
         <td>${codeList}</td>
-        <td><strong>$${batch.totalRevenue.toLocaleString()}</strong></td>
+        <td><strong>$${(parseFloat(batch.totalRevenue) || 0).toLocaleString()}</strong></td>
         <td style="white-space: nowrap;">
           <button class="btn-sell" style="background:#C5A059;" onclick="showReceipt(${batch.receiptNo})">Ver Recibo</button>
           <button class="btn-sell" style="background:#C0392B; margin-left:5px;" onclick="voidReceipt(${batch.receiptNo})">Anular</button>
@@ -494,22 +515,24 @@ function updateExcelSummaryTable() {
 
   const grouped = {};
   inventory.forEach(item => {
-    const key = `${item.dist}|${item.name}|${item.size}|${item.cost}|${item.price}`;
+    const costNum = parseFloat(item.cost) || 0;
+    const priceNum = parseFloat(item.price) || 0;
+    const key = `${item.dist}|${item.name}|${item.size}|${costNum}|${priceNum}`;
     if (!grouped[key]) {
       grouped[key] = {
         dist: item.dist,
         name: item.name,
         size: item.size,
         qty: 0,
-        unitCost: item.cost,
+        unitCost: costNum,
         totalCost: 0,
-        unitPrice: item.price,
+        unitPrice: priceNum,
         totalPrice: 0
       };
     }
     grouped[key].qty += 1;
-    grouped[key].totalCost += item.cost;
-    grouped[key].totalPrice += item.price;
+    grouped[key].totalCost += costNum;
+    grouped[key].totalPrice += priceNum;
   });
 
   tbody.innerHTML = '';
@@ -563,10 +586,10 @@ function exportTableToCSV() {
 
   rows.forEach(row => {
     const cols = row.querySelectorAll('th, td');
-    let rowData = [];
+    const rowData = [];
     cols.forEach((col, index) => {
       if (index > 0) {
-        let text = col.innerText.replace(/(\r\n|\n|\r)/gm, "").trim();
+        const text = col.innerText.replace(/(\r\n|\n|\r)/gm, "").trim();
         rowData.push(`"${text}"`);
       }
     });
