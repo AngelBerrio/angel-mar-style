@@ -459,23 +459,32 @@ th {
 @media print {
   @page {
     size: 80mm auto;
-    margin: 3mm;
+    margin: 2mm;
   }
 
-  body * {
-    visibility: hidden;
+  html, body {
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #FFF !important;
   }
 
-  #receiptModal,
-  #receiptPrintArea,
-  #receiptPrintArea * {
-    visibility: visible;
+  .store-wrapper,
+  .cart-float-bar,
+  .close-x,
+  .btn-action-receipt {
+    display: none !important;
   }
 
   #receiptModal {
     position: static !important;
-    background: none !important;
     display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    background: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   #receiptPrintArea {
@@ -485,14 +494,23 @@ th {
     max-height: none !important;
     overflow: visible !important;
     box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 11px;
+    border-radius: 0 !important;
+    padding: 4mm 2mm !important;
+    margin: 0 auto !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+    color: #000 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
-  .close-x,
-  .btn-action-receipt {
-    display: none !important;
+  #receiptPrintArea h3 {
+    font-size: 14px !important;
+    letter-spacing: 1px;
+  }
+
+  #receiptBodyData {
+    font-size: 11px !important;
   }
 }
