@@ -236,46 +236,7 @@ function deleteInventoryItem(id) {
   updateExcelSummaryTable();
   checkSelection();
 }
-@media print {
-  @page {
-    size: 80mm auto;
-    margin: 3mm;
-  }
 
-  body * {
-    visibility: hidden;
-  }
-
-  #receiptModal,
-  #receiptPrintArea,
-  #receiptPrintArea * {
-    visibility: visible;
-  }
-
-  #receiptModal {
-    position: static !important;
-    background: none !important;
-    display: block !important;
-  }
-
-  #receiptPrintArea {
-    position: static !important;
-    width: 100% !important;
-    max-width: 74mm !important;
-    max-height: none !important;
-    overflow: visible !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 11px;
-  }
-
-  .close-x,
-  .btn-action-receipt {
-    display: none !important;
-  }
-}
 function sellItem(id) {
   const itemIndex = inventory.findIndex(i => i.id === id);
   if (itemIndex !== -1) {
@@ -365,7 +326,6 @@ function generateMultiReceipt() {
   showReceipt(batchSale.receiptNo);
 }
 
-// ANULAR RECIBO: devuelve prendas al stock y elimina el recibo del historial
 function voidReceipt(receiptNo) {
   const batchIdx = soldItems.findIndex(b => b.receiptNo === receiptNo);
   if (batchIdx === -1) return;
@@ -380,7 +340,6 @@ function voidReceipt(receiptNo) {
 
   soldItems.splice(batchIdx, 1);
 
-  // Devolver cada prenda al inventario (asegurando un id único si ya existiera)
   batch.items.forEach((soldItem, idx) => {
     const restoredItem = {
       id: inventory.some(inv => inv.id === soldItem.id) ? Date.now() + idx : soldItem.id,
@@ -532,11 +491,6 @@ function updateExcelSummaryTable() {
     tfoot.innerHTML = '';
     return;
   }
-function printReceiptPDF() {
-  const modal = document.getElementById('receiptModal');
-  if (!modal || modal.style.display === 'none') return;
-  window.print();
-}
 
   const grouped = {};
   inventory.forEach(item => {
@@ -597,6 +551,12 @@ function printReceiptPDF() {
   `;
 }
 
+function printReceiptPDF() {
+  const modal = document.getElementById('receiptModal');
+  if (!modal || modal.style.display === 'none') return;
+  window.print();
+}
+
 function exportTableToCSV() {
   const rows = document.querySelectorAll('#excelSummaryTable tr');
   let csvContent = "\uFEFF";
@@ -623,4 +583,3 @@ function exportTableToCSV() {
   link.click();
   document.body.removeChild(link);
 }
-
