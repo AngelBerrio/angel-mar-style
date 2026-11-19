@@ -680,7 +680,7 @@ function printReceiptPDF() {
   const clone = receiptArea.cloneNode(true);
   clone.querySelectorAll('.close-x, .btn-action-receipt').forEach(el => el.remove());
 
-  const printWin = window.open('', '_blank', 'width=360,height=600');
+  const printWin = window.open('', '_blank', 'width=420,height=650');
   if (!printWin) {
     window.print();
     return;
@@ -704,38 +704,39 @@ function printReceiptPDF() {
         html, body {
           margin: 0;
           padding: 0;
-          width: 76mm;
+          width: 100%;
           background: #FFFFFF;
           color: #000000;
           font-family: 'Courier New', Courier, monospace;
-          font-size: 11px;
-          line-height: 1.32;
+          font-size: 14px;
+          line-height: 1.45;
         }
         .receipt-content {
-          width: 76mm;
-          padding: 2mm;
-          margin: 0;
+          width: 100%;
+          max-width: 78mm;
+          padding: 3mm;
+          margin: 0 auto;
         }
         .receipt-header {
           text-align: center;
           border-bottom: 1px dashed #000;
-          padding-bottom: 6px;
-          margin-bottom: 8px;
+          padding-bottom: 8px;
+          margin-bottom: 10px;
         }
         .receipt-header h3 {
-          margin: 0 0 3px 0;
-          font-size: 14px;
+          margin: 0 0 4px 0;
+          font-size: 18px;
         }
         .receipt-header p {
           margin: 2px 0;
-          font-size: 10px;
+          font-size: 12.5px;
         }
         .receipt-footer {
           text-align: center;
           border-top: 1px dashed #000;
-          padding-top: 6px;
-          margin-top: 8px;
-          font-size: 10px;
+          padding-top: 8px;
+          margin-top: 10px;
+          font-size: 12px;
         }
         .receipt-footer p {
           margin: 2px 0;
