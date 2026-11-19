@@ -8,7 +8,7 @@ function switchTab(evt, tabId) {
   }
 }
 
-let distributors = [
+const distributors = [
   { name: "Única JPK", image: "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=100", catalog: "#" },
   { name: "Kabile", image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=100", catalog: "#" },
   { name: "La Chatte", image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=100", catalog: "#" },
@@ -77,18 +77,34 @@ const defaultInventory = [
 const STORAGE_KEYS = {
   inventory: 'ams_inventory_v2',
   sold: 'ams_sold_history_v2',
+  deleted: 'ams_deleted_trash_v2',
   receiptCounter: 'ams_receipt_counter_v2'
 };
 
-let inventory = JSON.parse(localStorage.getItem(STORAGE_KEYS.inventory)) || defaultInventory;
-let soldItems = JSON.parse(localStorage.getItem(STORAGE_KEYS.sold)) || [];
+function loadSafeArray(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+
+let inventory = loadSafeArray(STORAGE_KEYS.inventory, defaultInventory);
+let soldItems = loadSafeArray(STORAGE_KEYS.sold, []);
+let deletedItems = loadSafeArray(STORAGE_KEYS.deleted, []);
 let receiptCounter = parseInt(localStorage.getItem(STORAGE_KEYS.receiptCounter), 10) || 17802;
 let activeReceiptNo = null;
 
 function saveAll() {
-  localStorage.setItem(STORAGE_KEYS.inventory, JSON.stringify(inventory));
-  localStorage.setItem(STORAGE_KEYS.sold, JSON.stringify(soldItems));
-  localStorage.setItem(STORAGE_KEYS.receiptCounter, String(receiptCounter));
+  try {
+    localStorage.setItem(STORAGE_KEYS.inventory, JSON.stringify(inventory));
+    localStorage.setItem(STORAGE_KEYS.sold, JSON.stringify(soldItems));
+    localStorage.setItem(STORAGE_KEYS.deleted, JSON.stringify(deletedItems));
+    localStorage.setItem(STORAGE_KEYS.receiptCounter, String(receiptCounter));
+  } catch (_) {}
 }
 
 function recalculateStockAndSales() {
@@ -107,51 +123,6 @@ function recalculateStockAndSales() {
   if (investedEl) investedEl.innerText = `$${currentStockInvestment.toLocaleString()}`;
   if (revenueEl) revenueEl.innerText = `$${historicalRevenue.toLocaleString()}`;
   if (profitEl) profitEl.innerText = `${historicalProfit >= 0 ? '+' : ''}$${historicalProfit.toLocaleString()}`;
-}
-
-function initApp() {
-  updateDistributorSelects();
-  updateDistributorCards();
-  updateInventoryTable();
-  updateSoldTable();
-  updateExcelSummaryTable();
-  recalculateStockAndSales();
-
-  const productForm = document.getElementById('productForm');
-  if (productForm) {
-    productForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-      const dist = document.getElementById('productDist').value;
-      const baseCode = document.getElementById('productCode').value;
-      const name = document.getElementById('productName').value;
-      const image = document.getElementById('productImage').value;
-      const size = document.getElementById('productSize').value;
-      const cost = parseFloat(document.getElementById('productCost').value) || 0;
-      const price = parseFloat(document.getElementById('productPrice').value) || 0;
-      const qty = parseInt(document.getElementById('productQty').value, 10) || 1;
-
-      for (let i = 0; i < qty; i++) {
-        const uniqueCode = qty > 1 ? `${baseCode}-${i + 1}` : baseCode;
-        inventory.push({ id: Date.now() + i, code: uniqueCode, image, dist, name, size, cost, price });
-      }
-
-      saveAll();
-      recalculateStockAndSales();
-      updateInventoryTable();
-      updateDistributorCards();
-      updateExcelSummaryTable();
-      this.reset();
-      document.getElementById('productQty').value = "1";
-      alert('¡Prenda(s) añadida(s) con éxito al inventario!');
-      switchTab({ currentTarget: document.querySelectorAll('.tab-btn')[2] }, 'tab-inventario');
-    });
-  }
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initApp);
-} else {
-  initApp();
 }
 
 function updateDistributorSelects() {
@@ -190,8 +161,7 @@ function generateUniqueCode() {
 
 function calculateDefaultPrice() {
   const cost = parseFloat(document.getElementById('productCost').value) || 0;
-  const suggestedPrice = cost * 1.40;
-  document.getElementById('productPrice').value = Math.round(suggestedPrice);
+  document.getElementById('productPrice').value = Math.round(cost * 1.40);
 }
 
 function updateDistributorCards() {
@@ -240,17 +210,148 @@ function editInventoryItem(id, field, rawValue) {
   updateExcelSummaryTable();
 }
 
+// ELIMINAR DEL STOCK (GUARDANDO EN PAPELERA PARA PODER RESARCIR)
 function deleteInventoryItem(id) {
   const idx = inventory.findIndex(i => i.id === id);
   if (idx === -1) return;
 
-  inventory.splice(idx, 1);
+  const removed = inventory.splice(idx, 1)[0];
+  deletedItems.unshift({
+    ...removed,
+    deletedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  });
+
+  // Mantener máximo 20 prendas recientes en papelera
+  if (deletedItems.length > 20) {
+    deletedItems.length = 20;
+  }
+
   saveAll();
   recalculateStockAndSales();
   updateInventoryTable();
   updateDistributorCards();
   updateExcelSummaryTable();
+  updateDeletedTrashPanel();
   checkSelection();
+  showUndoBanner(removed);
+}
+
+// RESTAURAR UNA PRENDA ELIMINADA AL INVENTARIO
+function restoreDeletedItem(deletedIndex = 0) {
+  if (!deletedItems[deletedIndex]) return;
+
+  const itemToRestore = deletedItems.splice(deletedIndex, 1)[0];
+  delete itemToRestore.deletedAt;
+
+  if (inventory.some(inv => inv.id === itemToRestore.id)) {
+    itemToRestore.id = Date.now();
+  }
+
+  inventory.push(itemToRestore);
+
+  saveAll();
+  recalculateStockAndSales();
+  updateInventoryTable();
+  updateDistributorCards();
+  updateExcelSummaryTable();
+  updateDeletedTrashPanel();
+
+  const banner = document.getElementById('undoDeleteBanner');
+  if (banner) banner.remove();
+}
+
+function showUndoBanner(item) {
+  const existing = document.getElementById('undoDeleteBanner');
+  if (existing) existing.remove();
+
+  const invTab = document.getElementById('tab-inventario');
+  if (!invTab || !item) return;
+
+  const banner = document.createElement('div');
+  banner.id = 'undoDeleteBanner';
+  banner.style.cssText = 'background:#FFF9E6; border:1px solid #C5A059; color:#1A1A1A; padding:12px 18px; border-radius:10px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; box-shadow:0 3px 10px rgba(0,0,0,0.04);';
+  banner.innerHTML = `
+    <span>🗑️ Eliminaste <b>[${item.code}]</b> ${item.name} (${item.size}) del inventario.</span>
+    <div style="display:flex; gap:8px;">
+      <button type="button" onclick="restoreDeletedItem(0)" style="background:#27AE60; color:#FFF; border:none; padding:6px 14px; border-radius:6px; font-weight:bold; cursor:pointer;">
+        ↩ Devolver al stock
+      </button>
+      <button type="button" onclick="this.closest('#undoDeleteBanner').remove()" style="background:transparent; color:#666; border:1px solid #CCC; padding:6px 10px; border-radius:6px; cursor:pointer;">
+        Cerrar
+      </button>
+    </div>
+  `;
+  invTab.prepend(banner);
+}
+
+function clearDeletedTrash() {
+  if (!deletedItems.length) return;
+  if (!confirm('¿Vaciar definitivamente la papelera de prendas eliminadas?')) return;
+  deletedItems = [];
+  saveAll();
+  updateDeletedTrashPanel();
+  const banner = document.getElementById('undoDeleteBanner');
+  if (banner) banner.remove();
+}
+
+function updateDeletedTrashPanel() {
+  const invTab = document.getElementById('tab-inventario');
+  if (!invTab) return;
+
+  let trashSection = document.getElementById('deletedTrashSection');
+  if (!trashSection) {
+    trashSection = document.createElement('section');
+    trashSection.id = 'deletedTrashSection';
+    trashSection.className = 'panel wide-panel';
+    invTab.appendChild(trashSection);
+  }
+
+  if (!deletedItems.length) {
+    trashSection.style.display = 'none';
+    return;
+  }
+
+  trashSection.style.display = 'block';
+  trashSection.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--primary-pastel); padding-bottom:8px; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+      <h2 style="border:none; margin:0; padding:0;">🗑️ Papelera de Prendas Eliminadas (${deletedItems.length})</h2>
+      <button type="button" onclick="clearDeletedTrash()" style="background:#888; color:#FFF; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:0.8rem;">
+        Vaciar Papelera
+      </button>
+    </div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Hora</th>
+            <th>Código</th>
+            <th>Distribuidor</th>
+            <th>Prenda</th>
+            <th>Talla</th>
+            <th>Precio Venta</th>
+            <th>Resarcir</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${deletedItems.map((item, index) => `
+            <tr>
+              <td>${item.deletedAt || '—'}</td>
+              <td><b>[${item.code}]</b></td>
+              <td>${item.dist}</td>
+              <td>${item.name}</td>
+              <td>${item.size}</td>
+              <td>$${(parseFloat(item.price) || 0).toLocaleString()}</td>
+              <td>
+                <button type="button" class="btn-sell" onclick="restoreDeletedItem(${index})">
+                  ↩ Devolver al Stock
+                </button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 
 function sellItem(id) {
@@ -358,7 +459,7 @@ function voidReceipt(receiptNo) {
   soldItems.splice(batchIdx, 1);
 
   batch.items.forEach((soldItem, idx) => {
-    const restoredItem = {
+    inventory.push({
       id: inventory.some(inv => inv.id === soldItem.id) ? Date.now() + idx : soldItem.id,
       code: soldItem.code,
       image: soldItem.image,
@@ -367,8 +468,7 @@ function voidReceipt(receiptNo) {
       size: soldItem.size,
       cost: soldItem.cost,
       price: soldItem.price
-    };
-    inventory.push(restoredItem);
+    });
   });
 
   saveAll();
@@ -429,6 +529,8 @@ function closeReceiptModal() {
 function addNewPurchase() {
   closeReceiptModal();
   switchTab({ currentTarget: document.querySelectorAll('.tab-btn')[2] }, 'tab-inventario');
+  const search = document.getElementById('searchInput');
+  if (search) search.focus();
 }
 
 function filterInventory() {
@@ -605,4 +707,50 @@ function exportTableToCSV() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+function initApp() {
+  updateDistributorSelects();
+  updateDistributorCards();
+  updateInventoryTable();
+  updateSoldTable();
+  updateExcelSummaryTable();
+  updateDeletedTrashPanel();
+  recalculateStockAndSales();
+
+  const productForm = document.getElementById('productForm');
+  if (productForm) {
+    productForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const dist = document.getElementById('productDist').value;
+      const baseCode = document.getElementById('productCode').value;
+      const name = document.getElementById('productName').value;
+      const image = document.getElementById('productImage').value;
+      const size = document.getElementById('productSize').value;
+      const cost = parseFloat(document.getElementById('productCost').value) || 0;
+      const price = parseFloat(document.getElementById('productPrice').value) || 0;
+      const qty = parseInt(document.getElementById('productQty').value, 10) || 1;
+
+      for (let i = 0; i < qty; i++) {
+        const uniqueCode = qty > 1 ? `${baseCode}-${i + 1}` : baseCode;
+        inventory.push({ id: Date.now() + i, code: uniqueCode, image, dist, name, size, cost, price });
+      }
+
+      saveAll();
+      recalculateStockAndSales();
+      updateInventoryTable();
+      updateDistributorCards();
+      updateExcelSummaryTable();
+      this.reset();
+      document.getElementById('productQty').value = "1";
+      alert('¡Prenda(s) añadida(s) con éxito al inventario!');
+      switchTab({ currentTarget: document.querySelectorAll('.tab-btn')[2] }, 'tab-inventario');
+    });
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
 }
