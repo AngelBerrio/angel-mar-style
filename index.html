@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Angel & Mar Style - Control de Inventario y Recibos Digitales</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="store-wrapper">
+  <!-- ENCABEZADO -->
+  <header class="store-header">
+    <h1>Angel & Mar Style</h1>
+    <p>Boutique Digital • Control de Inventario y Recibos de Caja</p>
+  </header>
+
+  <!-- NAVEGACIÓN POR PESTAÑAS -->
+  <nav class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab(event, 'tab-aliados')">Directorio de Aliados</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-prenda')">Inscripción de Prenda</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-inventario')">📦 Inventario y Ventas</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-excel')">📊 Resumen de Unidades (Excel)</button>
+  </nav>
+
+  <!-- PESTAÑA 1: DIRECTORIO DE ALIADOS -->
+  <div id="tab-aliados" class="tab-content active">
+    <section class="panel wide-panel">
+      <h2>Directorio de Aliados y Códigos por Proveedor</h2>
+      <div id="distributorCardsContainer" class="cards-grid"></div>
+    </section>
+  </div>
+
+  <!-- PESTAÑA 2: INSCRIPCIÓN DE PRENDA -->
+  <div id="tab-prenda" class="tab-content">
+    <section class="panel">
+      <h2>Inscripción de Prenda con Código Único (Margen 40%)</h2>
+      <form id="productForm">
+        <div class="field">
+          <label>Seleccionar Distribuidor</label>
+          <select id="productDist" required>
+            <option value="">-- Selecciona un aliado --</option>
+          </select>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Código Único de Prenda 
+              <button type="button" onclick="generateUniqueCode()" style="background:var(--accent-gold); color:#FFF; border:none; padding:2px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer; margin-left:5px;">Generar Código</button>
+            </label>
+            <input type="text" id="productCode" placeholder="Ej. JPK-09" required>
+          </div>
+          <div class="field">
+            <label>Nombre / Descripción de la Prenda</label>
+            <input type="text" id="productName" placeholder="Ej. Body Control" required>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>URL de la Foto</label>
+            <input type="url" id="productImage" placeholder="https://ejemplo.com/foto.jpg" required>
+          </div>
+          <div class="field">
+            <label>Talla</label>
+            <input type="text" id="productSize" placeholder="Ej. S, M, L" required>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Costo de Compra ($)</label>
+            <input type="number" id="productCost" placeholder="0" oninput="calculateDefaultPrice()" required>
+          </div>
+          <div class="field">
+            <label>Precio de Venta Sugerido (+40% / Modificable)</label>
+            <input type="number" id="productPrice" placeholder="0" required>
+          </div>
+        </div>
+        <div class="field">
+          <label>Cantidad de Unidades a Registrar</label>
+          <input type="number" id="productQty" value="1" min="1" required>
+        </div>
+        <button type="submit" class="btn-primary">Añadir al Inventario</button>
+      </form>
+    </section>
+  </div>
+
+  <!-- PESTAÑA 3: INVENTARIO Y VENTAS -->
+  <div id="tab-inventario" class="tab-content">
+    <section class="dashboard-banner">
+      <div class="stat-card">
+        <span>Total Invertido en Stock</span>
+        <strong id="totalInvested">$1,662,000</strong>
+      </div>
+      <div class="stat-card">
+        <span>Ingresos por Ventas</span>
+        <strong id="totalSalesRevenue" style="color: var(--accent-gold);">$0</strong>
+      </div>
+      <div class="stat-card">
+        <span>Ganancia Neta Real</span>
+        <strong id="totalProfit" style="color: var(--green-profit);">$0</strong>
+      </div>
+    </section>
+
+    <section class="panel wide-panel">
+      <h2>Inventario Disponible (Selecciona varias para un solo recibo o vende individual)</h2>
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="🔍 Buscar por Código Único o Nombre de Prenda..." onkeyup="filterInventory()">
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th>
+              <th>Foto</th>
+              <th>Código</th>
+              <th>Distribuidor</th>
+              <th>Prenda</th>
+              <th>Talla</th>
+              <th>Costo</th>
+              <th>Precio Venta (Modificable)</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel wide-panel">
+      <h2>Historial de Ventas y Recibos Digitales</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Recibo #</th>
+              <th>Artículos / Códigos</th>
+              <th>Total Pagado</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="soldBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- PESTAÑA 4: RESUMEN DE UNIDADES ESTILO EXCEL -->
+  <div id="tab-excel" class="tab-content">
+    <section class="panel wide-panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary-pastel); padding-bottom: 10px; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
+        <h2 style="border: none; margin: 0; padding: 0;">Hoja de Control de Unidades Disponibles (Estilo Excel)</h2>
+        <button type="button" onclick="exportTableToCSV()" style="background: #217346; color: #FFF; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: sans-serif; font-size: 0.85rem;">📥 Descargar CSV para Excel</button>
+      </div>
+      <div class="table-container">
+        <table class="excel-table" id="excelSummaryTable">
+          <thead>
+            <tr>
+              <th class="excel-corner">#</th>
+              <th>A • Distribuidor</th>
+              <th>B • Prenda / Referencia</th>
+              <th>C • Talla</th>
+              <th>D • Unidades en Stock</th>
+              <th>E • Costo Unitario</th>
+              <th>F • Inversión Total</th>
+              <th>G • Precio Venta Unit.</th>
+              <th>H • Valor Venta Proyectado</th>
+            </tr>
+          </thead>
+          <tbody id="excelSummaryBody"></tbody>
+          <tfoot id="excelSummaryFoot"></tfoot>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- BARRA FLOTANTE PARA UNIR VARIAS PRENDAS EN UN RECIBO -->
+<div id="cartFloatBar" class="cart-float-bar">
+  <span id="selectedCount">0 ítems seleccionados</span>
+  <button class="btn-generate-cart-receipt" onclick="generateMultiReceipt()">Imprimir Recibo General (Varias Compras)</button>
+</div>
+
+<!-- VENTANA MODAL DEL RECIBO DIGITAL -->
+<div id="receiptModal" class="receipt-modal">
+  <div class="receipt-content" id="receiptPrintArea">
+    <button class="close-x" onclick="closeReceiptModal()" title="Cerrar">&times;</button>
+    <div class="receipt-header">
+      <h3 style="margin:0 0 5px 0;">ANGEL & MAR STYLE</h3>
+      <p style="margin:0; font-size: 0.8rem;">Boutique Digital & Calidad</p>
+      <p style="margin:3px 0 0 0; font-size: 0.75rem;">Angel & Mar Style</p>
+      <p style="margin:5px 0 0 0; font-size: 0.8rem;" id="receiptDate"></p>
+    </div>
+    <div id="receiptBodyData" style="font-size: 0.82rem; line-height: 1.4;"></div>
+    <div class="receipt-footer">
+      <p style="margin:0;">¡Gracias por su compra!</p>
+      <p style="margin:5px 0 0 0;">* Cambios de Lunes a Viernes *</p>
+    </div>
+    <button class="btn-action-receipt" onclick="closeReceiptModal()">Cerrar Recibo</button>
+    <button class="btn-action-receipt" style="background: var(--accent-gold);" onclick="addNewPurchase()">➕ Agregar otra compra</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
