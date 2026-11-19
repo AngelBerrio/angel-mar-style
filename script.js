@@ -210,7 +210,6 @@ function editInventoryItem(id, field, rawValue) {
   updateExcelSummaryTable();
 }
 
-// ELIMINAR DEL STOCK (GUARDANDO EN PAPELERA PARA PODER RESARCIR)
 function deleteInventoryItem(id) {
   const idx = inventory.findIndex(i => i.id === id);
   if (idx === -1) return;
@@ -221,7 +220,6 @@ function deleteInventoryItem(id) {
     deletedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   });
 
-  // Mantener máximo 20 prendas recientes en papelera
   if (deletedItems.length > 20) {
     deletedItems.length = 20;
   }
@@ -236,7 +234,6 @@ function deleteInventoryItem(id) {
   showUndoBanner(removed);
 }
 
-// RESTAURAR UNA PRENDA ELIMINADA AL INVENTARIO
 function restoreDeletedItem(deletedIndex = 0) {
   if (!deletedItems[deletedIndex]) return;
 
@@ -677,9 +674,88 @@ function updateExcelSummaryTable() {
 }
 
 function printReceiptPDF() {
-  const modal = document.getElementById('receiptModal');
-  if (!modal || modal.style.display === 'none') return;
-  window.print();
+  const receiptArea = document.getElementById('receiptPrintArea');
+  if (!receiptArea) return;
+
+  const clone = receiptArea.cloneNode(true);
+  clone.querySelectorAll('.close-x, .btn-action-receipt').forEach(el => el.remove());
+
+  const printWin = window.open('', '_blank', 'width=360,height=600');
+  if (!printWin) {
+    window.print();
+    return;
+  }
+
+  printWin.document.open();
+  printWin.document.write(`
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Recibo Angel & Mar Style</title>
+      <style>
+        @page {
+          size: 80mm auto;
+          margin: 2mm;
+        }
+        * {
+          box-sizing: border-box;
+        }
+        html, body {
+          margin: 0;
+          padding: 0;
+          width: 76mm;
+          background: #FFFFFF;
+          color: #000000;
+          font-family: 'Courier New', Courier, monospace;
+          font-size: 11px;
+          line-height: 1.32;
+        }
+        .receipt-content {
+          width: 76mm;
+          padding: 2mm;
+          margin: 0;
+        }
+        .receipt-header {
+          text-align: center;
+          border-bottom: 1px dashed #000;
+          padding-bottom: 6px;
+          margin-bottom: 8px;
+        }
+        .receipt-header h3 {
+          margin: 0 0 3px 0;
+          font-size: 14px;
+        }
+        .receipt-header p {
+          margin: 2px 0;
+          font-size: 10px;
+        }
+        .receipt-footer {
+          text-align: center;
+          border-top: 1px dashed #000;
+          padding-top: 6px;
+          margin-top: 8px;
+          font-size: 10px;
+        }
+        .receipt-footer p {
+          margin: 2px 0;
+        }
+      </style>
+    </head>
+    <body>
+      ${clone.outerHTML}
+      <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+            window.close();
+          }, 150);
+        };
+      <\/script>
+    </body>
+    </html>
+  `);
+  printWin.document.close();
 }
 
 function exportTableToCSV() {
