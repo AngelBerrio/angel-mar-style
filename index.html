@@ -45,7 +45,7 @@
         </div>
         <div class="field-row">
           <div class="field">
-            <label>Código Único de Prenda 
+            <label>Código Único de Prenda
               <button type="button" onclick="generateUniqueCode()" style="background:var(--accent-gold); color:#FFF; border:none; padding:2px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer; margin-left:5px;">Generar Código</button>
             </label>
             <input type="text" id="productCode" placeholder="Ej. JPK-09" required>
@@ -183,7 +183,7 @@
 <!-- VENTANA MODAL DEL RECIBO DIGITAL -->
 <div id="receiptModal" class="receipt-modal">
   <div class="receipt-content" id="receiptPrintArea">
-    <button class="close-x" onclick="closeReceiptModal()" title="Cerrar">&times;</button>
+    <button type="button" class="close-x" onclick="closeReceiptModal()" title="Cerrar">&times;</button>
     <div class="receipt-header">
       <h3 style="margin:0 0 5px 0;">ANGEL & MAR STYLE</h3>
       <p style="margin:0; font-size: 0.8rem;">Boutique Digital & Calidad</p>
@@ -195,13 +195,12 @@
       <p style="margin:0;">¡Gracias por su compra!</p>
       <p style="margin:5px 0 0 0;">* Cambios de Lunes a Viernes *</p>
     </div>
-    <button class="btn-action-receipt" onclick="closeReceiptModal()">Cerrar Recibo</button>
-    <button class="btn-action-receipt" style="background: var(--accent-gold);" onclick="addNewPurchase()">➕ Agregar otra compra</button>
+    <button type="button" class="btn-action-receipt" style="background: #1A1A1A;" onclick="printReceiptPDF()">🖨️ Imprimir / Guardar PDF</button>
+    <button type="button" class="btn-action-receipt" style="background: var(--accent-gold);" onclick="addNewPurchase()">➕ Agregar otra compra</button>
+    <button type="button" class="btn-action-receipt" onclick="closeReceiptModal()">Cerrar Recibo</button>
   </div>
 </div>
-  <!-- DEJAR EN PDF RECIBO -->
-<button type="button" class="btn-action-receipt" style="background: #1A1A1A;" onclick="printReceiptPDF()">
-</button>
+
 <script src="script.js"></script>
 </body>
 </html>
